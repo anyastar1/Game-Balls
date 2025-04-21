@@ -32,12 +32,13 @@ const App: React.FC = () => {
     return savedHighScore ? parseInt(savedHighScore, 10) : 0;
   });
   const [timeLeft, setTimeLeft] = useState(30);
-  const [gameActive, setGameActive] = useState(true);
+  const [gameActive, setGameActive] = useState(false); // Изменено на false для стартового экрана
   const [draggingObjectId, setDraggingObjectId] = useState<number | null>(null);
   const [isGameOver, setIsGameOver] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false); // Новое состояние для отслеживания старта игры
 
   useEffect(() => {
-    if (!gameActive || isGameOver) return;
+    if (!gameActive || isGameOver || !gameStarted) return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -51,9 +52,11 @@ const App: React.FC = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [gameActive, isGameOver]);
+  }, [gameActive, isGameOver, gameStarted]);
 
   useEffect(() => {
+    if (!gameStarted) return; // Не запускать обработку рук, пока игра не начата
+
     const hands = new Hands({
       locateFile: (file) =>
         `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
@@ -148,10 +151,10 @@ const App: React.FC = () => {
       });
       camera.start();
     }
-  }, [draggingObjectId]);
+  }, [draggingObjectId, gameStarted]);
 
   useEffect(() => {
-    if (!gameActive || isGameOver) return;
+    if (!gameActive || isGameOver || !gameStarted) return;
 
     setObjects((prevObjects) => {
       const remainingObjects = prevObjects.filter((obj) => {
@@ -172,9 +175,11 @@ const App: React.FC = () => {
 
       return remainingObjects;
     });
-  }, [objects, targets, gameActive, isGameOver]);
+  }, [objects, targets, gameActive, isGameOver, gameStarted]);
 
   useEffect(() => {
+    if (!gameStarted) return;
+
     if (objects.length === 0 && gameActive && !isGameOver) {
       setGameActive(false);
       setScore((prev) => prev + timeLeft * 2);
@@ -192,7 +197,7 @@ const App: React.FC = () => {
         setGameActive(true);
       }, 1500);
     }
-  }, [objects, gameActive, isGameOver, timeLeft]);
+  }, [objects, gameActive, isGameOver, timeLeft, gameStarted]);
 
   useEffect(() => {
     if (score > highScore) {
@@ -218,60 +223,109 @@ const App: React.FC = () => {
     window.location.reload();
   };
 
+  const handleStartGame = () => {
+    setGameStarted(true);
+    setGameActive(true);
+  };
+
   return (
     <div className="app-container">
-      <h1>Шары</h1>
-      <div className="game-info">
-        <h2>Счёт: {score}</h2>
-        <h2>Рекорд: {highScore}</h2>
-        <h2 className={timeLeft < 10 ? "time-warning" : ""}>
-          Время: {timeLeft} сек
-        </h2>
-      </div>
+      <h1 className="game-title">Шары</h1>
 
-      {isGameOver && (
-        <div className="game-overlay">
-          <div className="game-over-content">
-            <h2 style={{ color: "red" }}>Время вышло! Игра окончена!</h2>
-            <button className="game-over-button" onClick={handleRestart}>
-              Начать заново
-            </button>
+      {!gameStarted ? (
+        <div className="start-screen">
+          <div className="instructions-container">
+            <div className="instructions-card">
+              <h2 className="instructions-title"> Инструкция к игре "Шары"</h2>
+              <div className="instructions-content">
+                <div className="instruction-item">
+                  <div className="instruction-number">1</div>
+                  <p>Поднесите руку к камере</p>
+                </div>
+                <div className="instruction-item">
+                  <div className="instruction-number">2</div>
+                  <p>
+                    Наведите указательный палец на шар в верхней части экрана
+                  </p>
+                </div>
+                <div className="instruction-item">
+                  <div className="instruction-number">3</div>
+                  <p>Перетащите шар на соответствующий по цвету круг внизу</p>
+                </div>
+                <div className="instruction-item">
+                  <div className="instruction-number">4</div>
+                  <p>Правильное совпадение цветов даёт +4 очка</p>
+                </div>
+                <div className="instruction-item">
+                  <div className="instruction-number">5</div>
+                  <p>Неправильное совпадение заканчивает игру</p>
+                </div>
+                <div className="instruction-item">
+                  <div className="instruction-number">6</div>
+                  <p>У вас есть 30 секунд на каждый уровень</p>
+                </div>
+              </div>
+              <button className="start-button pulse" onClick={handleStartGame}>
+                Начать игру
+              </button>
+            </div>
           </div>
         </div>
-      )}
+      ) : (
+        <>
+          <div className="game-info">
+            <h2>Счёт: {score}</h2>
+            <h2>Рекорд: {highScore}</h2>
+            <h2 className={timeLeft < 10 ? "time-warning" : ""}>
+              Время: {timeLeft} сек
+            </h2>
+          </div>
 
-      <div className="game-container">
-        <video ref={videoRef} style={{ display: "none" }} />
-        <canvas
-          ref={canvasRef}
-          width={640}
-          height={480}
-          style={{ position: "absolute", top: 0, left: 0 }}
-        />
-        {objects.map((obj) => (
-          <div
-            key={obj.id}
-            className="game-object"
-            style={{
-              left: obj.x - 25,
-              top: obj.y - 25,
-              backgroundColor: obj.color,
-            }}
-          />
-        ))}
-        {targets.map((target) => (
-          <div
-            key={target.id}
-            className="game-target"
-            style={{
-              left: target.x - 25,
-              top: target.y - 25,
-              backgroundColor: target.color,
-              opacity: 0.5,
-            }}
-          />
-        ))}
-      </div>
+          {isGameOver && (
+            <div className="game-overlay">
+              <div className="game-over-content">
+                <h2 style={{ color: "red" }}>Время вышло! Игра окончена!</h2>
+                <button className="game-over-button" onClick={handleRestart}>
+                  Начать заново
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="game-container">
+            <video ref={videoRef} style={{ display: "none" }} />
+            <canvas
+              ref={canvasRef}
+              width={640}
+              height={480}
+              style={{ position: "absolute", top: 0, left: 0 }}
+            />
+            {objects.map((obj) => (
+              <div
+                key={obj.id}
+                className="game-object"
+                style={{
+                  left: obj.x - 25,
+                  top: obj.y - 25,
+                  backgroundColor: obj.color,
+                }}
+              />
+            ))}
+            {targets.map((target) => (
+              <div
+                key={target.id}
+                className="game-target"
+                style={{
+                  left: target.x - 25,
+                  top: target.y - 25,
+                  backgroundColor: target.color,
+                  opacity: 0.5,
+                }}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 };
