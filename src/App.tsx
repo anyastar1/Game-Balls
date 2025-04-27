@@ -284,7 +284,7 @@ const App: React.FC = () => {
           {isGameOver && (
             <div className="game-overlay">
               <div className="game-over-content">
-                <h2 style={{ color: "red" }}>Время вышло! Игра окончена!</h2>
+                <h2 style={{ color: "red" }}> Игра окончена!</h2>
                 <button className="game-over-button" onClick={handleRestart}>
                   Начать заново
                 </button>
