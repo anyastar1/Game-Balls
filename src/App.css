@@ -28,7 +28,6 @@ body {
   position: relative;
   overflow: hidden;
 }
-* Декоративные элементы */
 .app-container::before {
   content: "";
   position: absolute;
@@ -269,7 +268,6 @@ h1::after {
   }
 }
 
-/* Основные стили */
 .game-title {
   text-align: center;
   color: #3a3a3a;
